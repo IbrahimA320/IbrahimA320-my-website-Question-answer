@@ -1,0 +1,1305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StudyBuddy - Q&A Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f3f4f6; }
+        .hidden-section { display: none !important; }
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .img-preview { max-width: 100%; max-height: 250px; border-radius: 8px; margin-top: 8px; object-fit: cover; border: 1px solid #e5e7eb; }
+        .notification-badge { position: absolute; top: -5px; right: -5px; background: red; color: white; border-radius: 50%; width: 20px; height: 20px; font-size: 12px; display: flex; align-items: center; justify-content: center; }
+    </style>
+</head>
+<body>
+
+    <!-- ================= AUTHENTICATION VIEW ================= -->
+    <div id="auth-view" class="min-h-screen flex items-center justify-center bg-indigo-900">
+        <div class="bg-white p-8 rounded-lg shadow-2xl w-full max-w-md">
+            <div class="text-center mb-6">
+                <i class="fas fa-graduation-cap text-5xl text-indigo-600 mb-2"></i>
+                <h1 class="text-3xl font-bold text-gray-800">StudyBuddy</h1>
+                <p class="text-gray-500">Anonymous Help Platform</p>
+            </div>
+            
+            <form onsubmit="handleLogin(event)" class="space-y-4">
+                <div>
+                    <label class="block text-gray-700 text-sm font-bold mb-2">Full Name</label>
+                    <input type="text" id="login-name" required class="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="e.g. John Doe">
+                </div>
+                
+                <div>
+                    <label class="block text-gray-700 text-sm font-bold mb-2">Select Role</label>
+                    <div class="flex gap-4">
+                        <label class="flex-1 cursor-pointer">
+                            <input type="radio" name="role" value="teacher" class="peer sr-only">
+                            <div class="text-center p-3 border rounded-lg peer-checked:bg-indigo-600 peer-checked:text-white hover:bg-gray-50 transition">
+                                <i class="fas fa-chalkboard-teacher block mb-1"></i> Teacher
+                            </div>
+                        </label>
+                        <label class="flex-1 cursor-pointer">
+                            <input type="radio" name="role" value="student" class="peer sr-only" checked>
+                            <div class="text-center p-3 border rounded-lg peer-checked:bg-indigo-600 peer-checked:text-white hover:bg-gray-50 transition">
+                                <i class="fas fa-user-graduate block mb-1"></i> Student
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <button type="submit" class="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg hover:bg-indigo-700 transition">Sign In</button>
+            </form>
+
+            <div class="mt-6 pt-6 border-t">
+                <button onclick="resetAllData()" class="w-full bg-red-50 text-red-600 text-sm font-semibold py-2 rounded hover:bg-red-100 transition">
+                    <i class="fas fa-trash"></i> Reset All Data
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= MAIN APP CONTAINER ================= -->
+    <div id="app-view" class="hidden-section min-h-screen flex flex-col">
+        
+        <!-- Navbar -->
+        <nav class="bg-white shadow-md p-4 sticky top-0 z-50">
+            <div class="container mx-auto flex justify-between items-center">
+                <div class="flex items-center gap-2 cursor-pointer" onclick="goHome()">
+                    <i class="fas fa-graduation-cap text-indigo-600 text-2xl"></i>
+                    <div>
+                        <span class="font-bold text-xl text-gray-800" id="nav-user-name">User</span>
+                        <span class="bg-indigo-100 text-indigo-700 text-xs px-2 py-1 rounded ml-2" id="nav-user-role">Role</span>
+                    </div>
+                </div>
+                <div class="flex items-center gap-4">
+                    <span id="nav-points" class="text-sm font-bold text-indigo-600 hidden-section"><i class="fas fa-star"></i> 0</span>
+                    <button id="nav-notifications-btn" onclick="showNotifications()" class="relative hidden-section text-indigo-600 hover:text-indigo-800 font-semibold text-sm">
+                        <i class="fas fa-bell"></i>
+                        <span id="notifications-badge" class="notification-badge hidden-section">0</span>
+                    </button>
+                    <button id="nav-requests-btn" onclick="showTeacherRequests()" class="relative hidden-section text-indigo-600 hover:text-indigo-800 font-semibold text-sm">
+                        <i class="fas fa-user-check"></i> Requests
+                        <span id="requests-badge" class="notification-badge hidden-section">0</span>
+                    </button>
+                    <button onclick="logout()" class="text-red-500 hover:text-red-700 font-semibold text-sm"><i class="fas fa-sign-out-alt"></i> Logout</button>
+                </div>
+            </div>
+        </nav>
+
+        <div class="container mx-auto p-6 flex-grow">
+
+            <!-- ================= TEACHER DASHBOARD ================= -->
+            <div id="teacher-dashboard" class="hidden-section fade-in">
+                <div class="flex justify-between items-center mb-6">
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-800">Teacher Dashboard</h2>
+                        <p class="text-gray-500 text-sm">Manage classes and monitor student progress</p>
+                    </div>
+                    <button onclick="toggleModal('create-class-modal')" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 shadow">
+                        <i class="fas fa-plus"></i> Create Class
+                    </button>
+                </div>
+
+                <!-- Stats Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div class="bg-white p-6 rounded-lg shadow border-l-4 border-indigo-500">
+                        <div class="text-gray-500 text-sm">Total Classes</div>
+                        <div class="text-3xl font-bold" id="stat-total-classes">0</div>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow border-l-4 border-green-500">
+                        <div class="text-gray-500 text-sm">Total Students</div>
+                        <div class="text-3xl font-bold" id="stat-total-students">0</div>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow border-l-4 border-yellow-500">
+                        <div class="text-gray-500 text-sm">Questions Asked</div>
+                        <div class="text-3xl font-bold" id="stat-total-questions">0</div>
+                    </div>
+                </div>
+
+                <h3 class="text-xl font-bold text-gray-800 mb-4">Your Classes</h3>
+                <div id="teacher-class-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+            </div>
+
+            <!-- ================= TEACHER REQUESTS MODAL ================= -->
+            <div id="teacher-requests-modal" class="hidden-section fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div class="bg-white p-6 rounded-lg shadow-xl w-full max-w-2xl max-h-[80vh] overflow-y-auto">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-xl font-bold">Join Requests</h3>
+                        <button onclick="toggleModal('teacher-requests-modal')" class="text-gray-500 hover:text-gray-700">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div id="requests-list" class="space-y-4"></div>
+                </div>
+            </div>
+
+            <!-- ================= STUDENT NOTIFICATIONS MODAL ================= -->
+            <div id="student-notifications-modal" class="hidden-section fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div class="bg-white p-6 rounded-lg shadow-xl w-full max-w-2xl max-h-[80vh] overflow-y-auto">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-xl font-bold">Notifications</h3>
+                        <button onclick="toggleModal('student-notifications-modal')" class="text-gray-500 hover:text-gray-700">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div id="notifications-list" class="space-y-4"></div>
+                </div>
+            </div>
+
+            <!-- ================= STUDENT VIEW ================= -->
+            <div id="student-dashboard" class="hidden-section fade-in">
+                <div class="flex justify-between items-center mb-6">
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-800">My Classes</h2>
+                        <p class="text-gray-500 text-sm">Select a class to ask or answer questions</p>
+                    </div>
+                    <button onclick="toggleModal('join-class-modal')" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 shadow">
+                        <i class="fas fa-door-open"></i> Request to Join
+                    </button>
+                </div>
+                
+                <!-- Pending Requests Info -->
+                <div id="student-pending-info" class="hidden-section bg-yellow-50 border-l-4 border-yellow-500 p-4 mb-6">
+                    <div class="flex items-center gap-2">
+                        <i class="fas fa-clock text-yellow-600"></i>
+                        <p class="text-yellow-800 text-sm">You have <span id="pending-count" class="font-bold">0</span> pending join requests waiting for teacher approval.</p>
+                    </div>
+                </div>
+
+                <!-- Empty State -->
+                <div id="student-empty-state" class="hidden-section text-center py-20 bg-white rounded-lg shadow">
+                    <i class="fas fa-folder-open text-6xl text-gray-300 mb-4"></i>
+                    <h3 class="text-xl font-bold text-gray-600">No Classes Joined</h3>
+                    <p class="text-gray-500 mb-6">Ask your teacher for a class code to get started.</p>
+                    <button onclick="toggleModal('join-class-modal')" class="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700">Request to Join</button>
+                </div>
+
+                <div id="student-class-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+            </div>
+
+            <!-- ================= CLASS ROOM VIEW ================= -->
+            <div id="class-room-view" class="hidden-section fade-in">
+                <button onclick="goHome()" class="mb-4 text-indigo-600 hover:underline font-semibold">
+                    <i class="fas fa-arrow-left"></i> Back to Dashboard
+                </button>
+                
+                <div class="flex flex-col lg:flex-row gap-6">
+                    <!-- Left: Q&A Feed -->
+                    <div class="lg:w-2/3">
+                        <div class="bg-white p-6 rounded-lg shadow-md mb-6">
+                            <div class="flex justify-between items-center mb-4 border-b pb-4">
+                                <div>
+                                    <h2 class="text-xl font-bold text-gray-800" id="class-room-title">Class Name</h2>
+                                    <p class="text-sm text-gray-500" id="class-room-code">Code: ----</p>
+                                </div>
+                                <button id="btn-ask-question" onclick="toggleModal('ask-question-modal')" class="hidden-section bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 shadow">
+                                    <i class="fas fa-question-circle"></i> Ask Question
+                                </button>
+                            </div>
+                            <div id="questions-feed" class="space-y-6"></div>
+                        </div>
+                    </div>
+
+                    <!-- Right: Leaderboard (TEACHER ONLY) -->
+                    <div id="teacher-leaderboard-section" class="lg:w-1/3 hidden-section">
+                        <div class="bg-white p-6 rounded-lg shadow-md sticky top-24">
+                            <h3 class="text-lg font-bold text-gray-800 mb-4 border-b pb-2">
+                                <i class="fas fa-trophy text-yellow-500"></i> Top Helpers
+                            </h3>
+                            <div id="class-leaderboard" class="space-y-3"></div>
+                            <div class="mt-4 pt-4 border-t text-xs text-gray-400 text-center">
+                                Points earned by helping classmates
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ================= MODALS ================= -->
+
+    <!-- Create Class Modal -->
+    <div id="create-class-modal" class="hidden-section fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white p-6 rounded-lg shadow-xl w-full max-w-md">
+            <h3 class="text-xl font-bold mb-4">Create New Class</h3>
+            <input type="text" id="new-class-name" placeholder="Class Name (e.g. Math 101)" class="w-full p-3 border rounded mb-4">
+            <div class="flex justify-end gap-2">
+                <button onclick="toggleModal('create-class-modal')" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded">Cancel</button>
+                <button onclick="createClass()" class="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700">Create</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Join Class Modal -->
+    <div id="join-class-modal" class="hidden-section fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white p-6 rounded-lg shadow-xl w-full max-w-md">
+            <h3 class="text-xl font-bold mb-4">Request to Join Class</h3>
+            <p class="text-sm text-gray-600 mb-4">Enter the class code. Your teacher will need to approve your request.</p>
+            <input type="text" id="join-class-code" placeholder="Enter Class Code" class="w-full p-3 border rounded mb-4 uppercase">
+            <div class="flex justify-end gap-2">
+                <button onclick="toggleModal('join-class-modal')" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded">Cancel</button>
+                <button onclick="requestJoinClass()" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Send Request</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ask Question Modal -->
+    <div id="ask-question-modal" class="hidden-section fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white p-6 rounded-lg shadow-xl w-full max-w-lg">
+            <h3 class="text-xl font-bold mb-4">Ask for Help</h3>
+            <input type="text" id="q-subject" placeholder="Subject (e.g. Algebra)" class="w-full p-2 border rounded mb-3">
+            <textarea id="q-text" placeholder="Describe your problem..." class="w-full p-2 border rounded mb-3 h-24"></textarea>
+            
+            <div class="mb-4">
+                <label class="block text-sm text-gray-600 mb-1">Attach Photo (Max 200KB)</label>
+                <input type="file" id="q-image" accept="image/*" class="w-full text-sm text-gray-500">
+                <img id="q-image-preview" class="img-preview hidden-section">
+            </div>
+
+            <div class="flex justify-end gap-2">
+                <button onclick="toggleModal('ask-question-modal')" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded">Cancel</button>
+                <button onclick="postQuestion()" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Post Question</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Answer Question Modal -->
+    <div id="answer-question-modal" class="hidden-section fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white p-6 rounded-lg shadow-xl w-full max-w-lg">
+            <h3 class="text-xl font-bold mb-4">Help Answer This</h3>
+            <input type="hidden" id="ans-question-id">
+            <textarea id="ans-text" placeholder="Write your solution..." class="w-full p-2 border rounded mb-3 h-24"></textarea>
+            
+            <div class="mb-4">
+                <label class="block text-sm text-gray-600 mb-1">Attach Photo of Solution (Max 200KB)</label>
+                <input type="file" id="ans-image" accept="image/*" class="w-full text-sm text-gray-500">
+                <img id="ans-image-preview" class="img-preview hidden-section">
+            </div>
+
+            <div class="flex justify-end gap-2">
+                <button onclick="toggleModal('answer-question-modal')" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded">Cancel</button>
+                <button onclick="postAnswer()" class="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700">Submit Answer</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= JAVASCRIPT LOGIC ================= -->
+    <script>
+        var DB = {
+            users: [],
+            classes: [],
+            currentUser: null
+        };
+
+        var MAX_IMAGE_SIZE = 200 * 1024;
+
+        // --- STORAGE ---
+        function loadDB() {
+            try {
+                DB.users = JSON.parse(localStorage.getItem('sb_users')) || [];
+                DB.classes = JSON.parse(localStorage.getItem('sb_classes')) || [];
+            } catch (e) {
+                console.error("Storage error", e);
+                DB.users = [];
+                DB.classes = [];
+            }
+        }
+
+        function saveDB() {
+            try {
+                localStorage.setItem('sb_users', JSON.stringify(DB.users));
+                localStorage.setItem('sb_classes', JSON.stringify(DB.classes));
+            } catch (e) {
+                alert("Storage Full! Please delete old classes or use smaller images.");
+            }
+        }
+
+        function resetAllData() {
+            if (confirm("WARNING: This will delete ALL users, classes, and questions. Continue?")) {
+                localStorage.clear();
+                location.reload();
+            }
+        }
+
+        loadDB();
+
+        // --- UTILS ---
+        function toggleModal(id) {
+            var el = document.getElementById(id);
+            if (el.classList.contains('hidden-section')) {
+                el.classList.remove('hidden-section');
+                if (id === 'teacher-requests-modal') {
+                    renderTeacherRequests();
+                }
+                if (id === 'student-notifications-modal') {
+                    renderStudentNotifications();
+                }
+            } else {
+                el.classList.add('hidden-section');
+                if (id === 'ask-question-modal') {
+                    document.getElementById('q-image-preview').classList.add('hidden-section');
+                    document.getElementById('q-image').value = '';
+                }
+                if (id === 'answer-question-modal') {
+                    document.getElementById('ans-image-preview').classList.add('hidden-section');
+                    document.getElementById('ans-image').value = '';
+                }
+            }
+        }
+
+        function fileToBase64(file, callback) {
+            if (file.size > MAX_IMAGE_SIZE) {
+                alert('Image too large! Max size is 200KB.');
+                return;
+            }
+            var reader = new FileReader();
+            reader.onload = function() { callback(reader.result); };
+            reader.onerror = function(error) { console.error(error); };
+            reader.readAsDataURL(file);
+        }
+
+        // --- COPY TO CLIPBOARD ---
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(function() {
+                alert('Code copied to clipboard: ' + text);
+            }, function(err) {
+                // Fallback for older browsers
+                var textArea = document.createElement('textarea');
+                textArea.value = text;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                alert('Code copied to clipboard: ' + text);
+            });
+        }
+
+        // --- AUTH ---
+        function handleLogin(e) {
+            e.preventDefault();
+            var name = document.getElementById('login-name').value.trim();
+            var role = document.querySelector('input[name="role"]:checked').value;
+
+            if (!name) {
+                alert('Enter name');
+                return;
+            }
+
+            var user = null;
+            for (var i = 0; i < DB.users.length; i++) {
+                if (DB.users[i].name.toLowerCase() === name.toLowerCase() && DB.users[i].role === role) {
+                    user = DB.users[i];
+                    break;
+                }
+            }
+
+            if (!user) {
+                user = { 
+                    id: Date.now(), 
+                    name: name, 
+                    role: role, 
+                    points: 0, 
+                    helpedCount: 0, 
+                    classIds: [],
+                    pendingRequests: [],
+                    notifications: []
+                };
+                DB.users.push(user);
+                saveDB();
+            }
+
+            DB.currentUser = user;
+            
+            document.getElementById('auth-view').classList.add('hidden-section');
+            document.getElementById('app-view').classList.remove('hidden-section');
+            
+            document.getElementById('nav-user-name').innerText = user.name;
+            document.getElementById('nav-user-role').innerText = role.toUpperCase();
+            document.getElementById('nav-user-role').className = role === 'teacher' 
+                ? 'bg-indigo-100 text-indigo-700 text-xs px-2 py-1 rounded ml-2'
+                : 'bg-green-100 text-green-700 text-xs px-2 py-1 rounded ml-2';
+            
+            if (role === 'student') {
+                document.getElementById('nav-points').classList.remove('hidden-section');
+                document.getElementById('nav-points').innerHTML = '<i class="fas fa-star"></i> ' + user.points;
+                document.getElementById('nav-requests-btn').classList.add('hidden-section');
+                document.getElementById('nav-notifications-btn').classList.remove('hidden-section');
+                updateNotificationsBadge();
+            } else {
+                document.getElementById('nav-points').classList.add('hidden-section');
+                document.getElementById('nav-requests-btn').classList.remove('hidden-section');
+                document.getElementById('nav-notifications-btn').classList.add('hidden-section');
+                updateRequestsBadge();
+            }
+
+            if (role === 'teacher') {
+                document.getElementById('teacher-dashboard').classList.remove('hidden-section');
+                renderTeacherDashboard();
+            } else {
+                document.getElementById('student-dashboard').classList.remove('hidden-section');
+                renderStudentDashboard();
+            }
+        }
+
+        function logout() {
+            DB.currentUser = null;
+            location.reload();
+        }
+
+        function goHome() {
+            document.getElementById('class-room-view').classList.add('hidden-section');
+            if (DB.currentUser.role === 'teacher') {
+                document.getElementById('teacher-dashboard').classList.remove('hidden-section');
+                renderTeacherDashboard();
+            } else {
+                document.getElementById('student-dashboard').classList.remove('hidden-section');
+                renderStudentDashboard();
+            }
+        }
+
+        // --- NOTIFICATIONS SYSTEM (STUDENTS) ---
+        function updateNotificationsBadge() {
+            if (DB.currentUser.role !== 'student') return;
+            
+            for (var i = 0; i < DB.users.length; i++) {
+                if (DB.users[i].id === DB.currentUser.id) {
+                    DB.currentUser = DB.users[i];
+                    break;
+                }
+            }
+            
+            var unreadCount = 0;
+            if (DB.currentUser.notifications) {
+                for (var j = 0; j < DB.currentUser.notifications.length; j++) {
+                    if (!DB.currentUser.notifications[j].read) {
+                        unreadCount++;
+                    }
+                }
+            }
+            
+            var badge = document.getElementById('notifications-badge');
+            if (unreadCount > 0) {
+                badge.innerText = unreadCount;
+                badge.classList.remove('hidden-section');
+            } else {
+                badge.classList.add('hidden-section');
+            }
+        }
+
+        function showNotifications() {
+            toggleModal('student-notifications-modal');
+        }
+
+        function renderStudentNotifications() {
+            var container = document.getElementById('notifications-list');
+            container.innerHTML = '';
+            
+            for (var i = 0; i < DB.users.length; i++) {
+                if (DB.users[i].id === DB.currentUser.id) {
+                    DB.currentUser = DB.users[i];
+                    break;
+                }
+            }
+            
+            if (!DB.currentUser.notifications || DB.currentUser.notifications.length === 0) {
+                container.innerHTML = '<p class="text-center text-gray-500 py-8">No notifications</p>';
+                return;
+            }
+
+            var sortedNotifs = DB.currentUser.notifications.slice().sort(function(a, b) { return b.timestamp - a.timestamp; });
+            
+            for (var j = 0; j < sortedNotifs.length; j++) {
+                var notif = sortedNotifs[j];
+                var cls = null;
+                for (var k = 0; k < DB.classes.length; k++) {
+                    if (DB.classes[k].id === notif.classId) {
+                        cls = DB.classes[k];
+                        break;
+                    }
+                }
+                
+                var actionButtons = '';
+                if (notif.type === 'answer_received' && !notif.rated) {
+                    actionButtons = '<div class="flex gap-2 mt-3">' +
+                        '<button onclick="rateAnswer(' + notif.classId + ', ' + notif.questionId + ', ' + notif.answerIndex + ', true, ' + notif.helperId + ')" class="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700"><i class="fas fa-thumbs-up"></i> Helpful (+20 pts)</button>' +
+                        '<button onclick="rateAnswer(' + notif.classId + ', ' + notif.questionId + ', ' + notif.answerIndex + ', false, ' + notif.helperId + ')" class="bg-gray-600 text-white px-3 py-1 rounded text-sm hover:bg-gray-700"><i class="fas fa-thumbs-down"></i> Not Helpful</button>' +
+                        '</div>';
+                }
+                
+                var statusBadge = '';
+                if (notif.type === 'answer_received') {
+                    if (notif.rated) {
+                        statusBadge = notif.helpful 
+                            ? '<span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">You marked Helpful</span>'
+                            : '<span class="text-xs bg-red-100 text-red-800 px-2 py-1 rounded">You marked Not Helpful</span>';
+                    } else {
+                        statusBadge = '<span class="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">Action Needed</span>';
+                    }
+                }
+                if (notif.type === 'answer_rated') {
+                    statusBadge = notif.helpful
+                        ? '<span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">✅ Your answer was marked Helpful! +20 pts</span>'
+                        : '<span class="text-xs bg-gray-100 text-gray-800 px-2 py-1 rounded">Your answer was marked Not Helpful</span>';
+                }
+                
+                container.innerHTML += '<div class="bg-' + (notif.read ? 'gray-50' : 'indigo-50') + ' p-4 rounded-lg border ' + (notif.read ? '' : 'border-indigo-300') + '">' +
+                    '<div class="flex justify-between items-start">' +
+                    '<div>' +
+                    '<p class="font-bold text-sm">' + notif.message + '</p>' +
+                    '<p class="text-xs text-gray-500">' + new Date(notif.timestamp).toLocaleString() + '</p>' +
+                    (cls ? '<p class="text-xs text-gray-400">Class: ' + cls.name + '</p>' : '') +
+                    '</div>' +
+                    statusBadge +
+                    '</div>' +
+                    actionButtons +
+                    '</div>';
+                
+                notif.read = true;
+            }
+            
+            saveDB();
+            updateNotificationsBadge();
+        }
+
+        function rateAnswer(classId, questionId, answerIndex, isHelpful, helperId) {
+            var cls = null;
+            for (var i = 0; i < DB.classes.length; i++) {
+                if (DB.classes[i].id === classId) {
+                    cls = DB.classes[i];
+                    break;
+                }
+            }
+            
+            if (!cls) return;
+            
+            var qIndex = -1;
+            for (var j = 0; j < cls.questions.length; j++) {
+                if (cls.questions[j].id === questionId) {
+                    qIndex = j;
+                    break;
+                }
+            }
+            
+            if (qIndex === -1 || !cls.questions[qIndex].answers) return;
+            
+            // Mark this answer as rated
+            cls.questions[qIndex].answers[answerIndex].rated = true;
+            cls.questions[qIndex].answers[answerIndex].helpful = isHelpful;
+            
+            // Remove the notification from asker after rating
+            for (var n = 0; n < DB.currentUser.notifications.length; n++) {
+                if (DB.currentUser.notifications[n].type === 'answer_received' && 
+                    DB.currentUser.notifications[n].questionId === questionId &&
+                    DB.currentUser.notifications[n].answerIndex === answerIndex) {
+                    DB.currentUser.notifications.splice(n, 1);
+                    break;
+                }
+            }
+            
+            // If helpful, award points
+            if (isHelpful) {
+                for (var k = 0; k < DB.users.length; k++) {
+                    if (DB.users[k].id === helperId) {
+                        DB.users[k].points += 20;
+                        DB.users[k].helpedCount += 1;
+                        // Notify helper
+                        if (!DB.users[k].notifications) {
+                            DB.users[k].notifications = [];
+                        }
+                        DB.users[k].notifications.push({
+                            type: 'answer_rated',
+                            classId: classId,
+                            questionId: questionId,
+                            message: 'Your answer was marked as Helpful!',
+                            timestamp: Date.now(),
+                            read: false,
+                            helpful: true
+                        });
+                        break;
+                    }
+                }
+                
+                // Mark question as solved (no more answers allowed)
+                cls.questions[qIndex].solved = true;
+            }
+            
+            saveDB();
+            
+            for (var m = 0; m < DB.users.length; m++) {
+                if (DB.users[m].id === DB.currentUser.id) {
+                    DB.currentUser = DB.users[m];
+                    break;
+                }
+            }
+            
+            renderStudentNotifications();
+            renderQuestions(cls);
+            updateNotificationsBadge();
+            alert(isHelpful ? 'Answer marked as helpful! Helper earned 20 points. Question closed.' : 'Answer marked as not helpful.');
+        }
+
+        // --- TEACHER REQUESTS SYSTEM ---
+        function updateRequestsBadge() {
+            if (DB.currentUser.role !== 'teacher') return;
+            
+            var totalRequests = 0;
+            for (var i = 0; i < DB.classes.length; i++) {
+                if (DB.classes[i].teacherId === DB.currentUser.id) {
+                    totalRequests += DB.classes[i].pendingJoins.length;
+                }
+            }
+            
+            var badge = document.getElementById('requests-badge');
+            if (totalRequests > 0) {
+                badge.innerText = totalRequests;
+                badge.classList.remove('hidden-section');
+            } else {
+                badge.classList.add('hidden-section');
+            }
+        }
+
+        function showTeacherRequests() {
+            toggleModal('teacher-requests-modal');
+        }
+
+        function renderTeacherRequests() {
+            var container = document.getElementById('requests-list');
+            container.innerHTML = '';
+            
+            var hasRequests = false;
+            for (var i = 0; i < DB.classes.length; i++) {
+                var cls = DB.classes[i];
+                if (cls.teacherId === DB.currentUser.id && cls.pendingJoins && cls.pendingJoins.length > 0) {
+                    hasRequests = true;
+                    for (var j = 0; j < cls.pendingJoins.length; j++) {
+                        var request = cls.pendingJoins[j];
+                        var student = null;
+                        for (var k = 0; k < DB.users.length; k++) {
+                            if (DB.users[k].id === request.studentId) {
+                                student = DB.users[k];
+                                break;
+                            }
+                        }
+                        
+                        container.innerHTML += '<div class="bg-gray-50 p-4 rounded-lg border">' +
+                            '<div class="flex justify-between items-center">' +
+                            '<div>' +
+                            '<p class="font-bold">' + (student ? student.name : 'Unknown') + '</p>' +
+                            '<p class="text-sm text-gray-600">Requested to join: <span class="font-semibold">' + cls.name + '</span></p>' +
+                            '<p class="text-xs text-gray-400">' + new Date(request.timestamp).toLocaleString() + '</p>' +
+                            '</div>' +
+                            '<div class="flex gap-2">' +
+                            '<button onclick="approveJoinRequest(' + cls.id + ', ' + request.studentId + ')" class="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700">Approve</button>' +
+                            '<button onclick="rejectJoinRequest(' + cls.id + ', ' + request.studentId + ')" class="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700">Reject</button>' +
+                            '</div>' +
+                            '</div>' +
+                            '</div>';
+                    }
+                }
+            }
+            
+            if (!hasRequests) {
+                container.innerHTML = '<p class="text-center text-gray-500 py-8">No pending requests</p>';
+            }
+        }
+
+        function approveJoinRequest(classId, studentId) {
+            var cls = null;
+            for (var i = 0; i < DB.classes.length; i++) {
+                if (DB.classes[i].id === classId) {
+                    cls = DB.classes[i];
+                    break;
+                }
+            }
+            
+            if (!cls) return;
+            
+            var newPending = [];
+            for (var i = 0; i < cls.pendingJoins.length; i++) {
+                if (cls.pendingJoins[i].studentId !== studentId) {
+                    newPending.push(cls.pendingJoins[i]);
+                }
+            }
+            cls.pendingJoins = newPending;
+            
+            if (cls.students.indexOf(studentId) === -1) {
+                cls.students.push(studentId);
+            }
+            
+            for (var j = 0; j < DB.users.length; j++) {
+                if (DB.users[j].id === studentId) {
+                    if (DB.users[j].classIds.indexOf(classId) === -1) {
+                        DB.users[j].classIds.push(classId);
+                    }
+                    break;
+                }
+            }
+            
+            saveDB();
+            updateRequestsBadge();
+            renderTeacherRequests();
+            alert('Request approved! Student can now access the class.');
+        }
+
+        function rejectJoinRequest(classId, studentId) {
+            var cls = null;
+            for (var i = 0; i < DB.classes.length; i++) {
+                if (DB.classes[i].id === classId) {
+                    cls = DB.classes[i];
+                    break;
+                }
+            }
+            
+            if (!cls) return;
+            
+            var newPending = [];
+            for (var i = 0; i < cls.pendingJoins.length; i++) {
+                if (cls.pendingJoins[i].studentId !== studentId) {
+                    newPending.push(cls.pendingJoins[i]);
+                }
+            }
+            cls.pendingJoins = newPending;
+            
+            saveDB();
+            updateRequestsBadge();
+            renderTeacherRequests();
+            alert('Request rejected.');
+        }
+
+        // --- TEACHER LOGIC ---
+        function renderTeacherDashboard() {
+            var container = document.getElementById('teacher-class-list');
+            var myClasses = [];
+            for (var i = 0; i < DB.classes.length; i++) {
+                if (DB.classes[i].teacherId === DB.currentUser.id) {
+                    myClasses.push(DB.classes[i]);
+                }
+            }
+            
+            document.getElementById('stat-total-classes').innerText = myClasses.length;
+            var allStudents = {};
+            var totalQ = 0;
+            for (var j = 0; j < myClasses.length; j++) {
+                for (var k = 0; k < myClasses[j].students.length; k++) {
+                    allStudents[myClasses[j].students[k]] = true;
+                }
+                totalQ += myClasses[j].questions.length;
+            }
+            document.getElementById('stat-total-students').innerText = Object.keys(allStudents).length;
+            document.getElementById('stat-total-questions').innerText = totalQ;
+
+            if (myClasses.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 col-span-full text-center">No classes created yet.</p>';
+            } else {
+                container.innerHTML = '';
+                for (var i = 0; i < myClasses.length; i++) {
+                    var cls = myClasses[i];
+                    var pendingCount = cls.pendingJoins ? cls.pendingJoins.length : 0;
+                    var pendingBadge = pendingCount > 0 ? '<span class="bg-red-500 text-white text-xs px-2 py-1 rounded ml-2">' + pendingCount + ' pending</span>' : '';
+                    
+                    container.innerHTML += '<div class="bg-white p-6 rounded-lg shadow border-t-4 border-indigo-500 cursor-pointer hover:shadow-lg transition" onclick="openClass(' + cls.id + ')">' +
+                        '<div class="flex justify-between items-start">' +
+                        '<div>' +
+                        '<h3 class="font-bold text-xl">' + cls.name + '</h3>' +
+                        '<p class="text-sm text-gray-500 mb-2">Code: <span class="font-mono bg-gray-200 px-1 rounded">' + cls.code + '</span> ' + pendingBadge + '</p>' +
+                        '<button onclick="event.stopPropagation(); copyToClipboard(\'' + cls.code + '\')" class="text-xs bg-indigo-100 text-indigo-700 px-2 py-1 rounded hover:bg-indigo-200 mt-1"><i class="fas fa-copy"></i> Copy Code</button>' +
+                        '</div>' +
+                        '<i class="fas fa-chevron-right text-gray-400"></i>' +
+                        '</div>' +
+                        '<div class="flex justify-between text-sm text-gray-600 mt-4">' +
+                        '<span><i class="fas fa-users"></i> ' + cls.students.length + ' Students</span>' +
+                        '<span><i class="fas fa-question"></i> ' + cls.questions.length + ' Questions</span>' +
+                        '</div>' +
+                        '</div>';
+                }
+            }
+            
+            updateRequestsBadge();
+        }
+
+        function createClass() {
+            var name = document.getElementById('new-class-name').value.trim();
+            if (!name) {
+                alert('Enter class name');
+                return;
+            }
+            var code = name.substring(0, 4).toUpperCase().replace(/[^A-Z0-9]/g, '') + '-' + Math.floor(1000 + Math.random() * 9000);
+            
+            DB.classes.push({
+                id: Date.now(), 
+                name: name, 
+                code: code,
+                teacherId: DB.currentUser.id,
+                students: [], 
+                questions: [],
+                pendingJoins: []
+            });
+            saveDB();
+            toggleModal('create-class-modal');
+            document.getElementById('new-class-name').value = '';
+            renderTeacherDashboard();
+            alert('Class Created!\nCode: ' + code + '\nShare this with students.');
+        }
+
+        // --- STUDENT LOGIC ---
+        function renderStudentDashboard() {
+            var container = document.getElementById('student-class-list');
+            var emptyState = document.getElementById('student-empty-state');
+            var pendingInfo = document.getElementById('student-pending-info');
+            var myClasses = [];
+            
+            for (var i = 0; i < DB.classes.length; i++) {
+                if (DB.classes[i].students.indexOf(DB.currentUser.id) !== -1) {
+                    myClasses.push(DB.classes[i]);
+                }
+            }
+
+            var pendingCount = 0;
+            for (var j = 0; j < DB.classes.length; j++) {
+                if (DB.classes[j].pendingJoins) {
+                    for (var k = 0; k < DB.classes[j].pendingJoins.length; k++) {
+                        if (DB.classes[j].pendingJoins[k].studentId === DB.currentUser.id) {
+                            pendingCount++;
+                        }
+                    }
+                }
+            }
+            
+            if (pendingCount > 0) {
+                pendingInfo.classList.remove('hidden-section');
+                document.getElementById('pending-count').innerText = pendingCount;
+            } else {
+                pendingInfo.classList.add('hidden-section');
+            }
+
+            if (myClasses.length === 0) {
+                container.innerHTML = '';
+                emptyState.classList.remove('hidden-section');
+            } else {
+                emptyState.classList.add('hidden-section');
+                container.innerHTML = '';
+                for (var i = 0; i < myClasses.length; i++) {
+                    var cls = myClasses[i];
+                    container.innerHTML += '<div class="bg-white p-6 rounded-lg shadow border-t-4 border-green-500 cursor-pointer hover:shadow-lg transition" onclick="openClass(' + cls.id + ')">' +
+                        '<h3 class="font-bold text-xl">' + cls.name + '</h3>' +
+                        '<p class="text-sm text-gray-500 mb-4">Code: ' + cls.code + '</p>' +
+                        '<button class="w-full bg-indigo-50 text-indigo-700 py-2 rounded font-semibold hover:bg-indigo-100">Enter Class</button>' +
+                        '</div>';
+                }
+            }
+        }
+
+        function requestJoinClass() {
+            var code = document.getElementById('join-class-code').value.trim().toUpperCase();
+            var cls = null;
+            for (var i = 0; i < DB.classes.length; i++) {
+                if (DB.classes[i].code === code) {
+                    cls = DB.classes[i];
+                    break;
+                }
+            }
+            if (!cls) {
+                alert('Invalid Code');
+                return;
+            }
+            if (cls.students.indexOf(DB.currentUser.id) !== -1) {
+                alert('You are already in this class');
+                return;
+            }
+            
+            if (cls.pendingJoins) {
+                for (var j = 0; j < cls.pendingJoins.length; j++) {
+                    if (cls.pendingJoins[j].studentId === DB.currentUser.id) {
+                        alert('You already have a pending request for this class');
+                        return;
+                    }
+                }
+            }
+            
+            if (!cls.pendingJoins) {
+                cls.pendingJoins = [];
+            }
+            cls.pendingJoins.push({
+                studentId: DB.currentUser.id,
+                timestamp: Date.now()
+            });
+            
+            saveDB();
+            toggleModal('join-class-modal');
+            document.getElementById('join-class-code').value = '';
+            renderStudentDashboard();
+            alert('Request sent! Wait for teacher approval.');
+        }
+
+        // --- CLASS ROOM & Q&A ---
+        var currentClassId = null;
+
+        function openClass(id) {
+            currentClassId = id;
+            var cls = null;
+            for (var i = 0; i < DB.classes.length; i++) {
+                if (DB.classes[i].id === id) {
+                    cls = DB.classes[i];
+                    break;
+                }
+            }
+            
+            document.getElementById('teacher-dashboard').classList.add('hidden-section');
+            document.getElementById('student-dashboard').classList.add('hidden-section');
+            document.getElementById('class-room-view').classList.remove('hidden-section');
+            
+            document.getElementById('class-room-title').innerText = cls.name;
+            document.getElementById('class-room-code').innerText = 'Code: ' + cls.code;
+
+            var askBtn = document.getElementById('btn-ask-question');
+            if (DB.currentUser.role === 'student') {
+                askBtn.classList.remove('hidden-section');
+            } else {
+                askBtn.classList.add('hidden-section');
+            }
+            
+            var leaderboardSection = document.getElementById('teacher-leaderboard-section');
+            if (DB.currentUser.role === 'teacher') {
+                leaderboardSection.classList.remove('hidden-section');
+            } else {
+                leaderboardSection.classList.add('hidden-section');
+            }
+
+            renderQuestions(cls);
+            renderLeaderboard(cls);
+        }
+
+        function renderQuestions(cls) {
+            var container = document.getElementById('questions-feed');
+            container.innerHTML = '';
+
+            var isTeacher = DB.currentUser.role === 'teacher';
+            var isStudent = DB.currentUser.role === 'student';
+
+            // Filter questions: Students don't see solved questions, Teachers see all
+            var visibleQuestions = [];
+            for (var i = 0; i < cls.questions.length; i++) {
+                var q = cls.questions[i];
+                if (isTeacher || !q.solved) {
+                    visibleQuestions.push(q);
+                }
+            }
+
+            if (visibleQuestions.length === 0) {
+                if (isStudent) {
+                    container.innerHTML = '<div class="text-center py-10 text-gray-500"><i class="fas fa-check-circle text-4xl mb-3 text-green-500"></i><p>All questions have been solved!</p><p class="text-sm text-gray-400 mt-2">Solved questions are hidden. Check with your teacher for records.</p></div>';
+                } else {
+                    container.innerHTML = '<div class="text-center py-10 text-gray-500"><i class="fas fa-clipboard-list text-4xl mb-3"></i><p>No questions yet.</p></div>';
+                }
+                return;
+            }
+
+            var sortedQuestions = visibleQuestions.slice().sort(function(a, b) {
+                if (a.solved && !b.solved) return 1;
+                if (!a.solved && b.solved) return -1;
+                return b.id - a.id;
+            });
+
+            for (var i = 0; i < sortedQuestions.length; i++) {
+                var q = sortedQuestions[i];
+                var asker = null;
+                for (var j = 0; j < DB.users.length; j++) {
+                    if (DB.users[j].id === q.askerId) {
+                        asker = DB.users[j];
+                        break;
+                    }
+                }
+                
+                var hasAnswers = q.answers && q.answers.length > 0;
+                var canAnswer = !isTeacher && DB.currentUser.id !== q.askerId && !q.solved;
+                
+                // Check if current user already answered
+                var alreadyAnswered = false;
+                if (q.answers) {
+                    for (var k = 0; k < q.answers.length; k++) {
+                        if (q.answers[k].helperId === DB.currentUser.id) {
+                            alreadyAnswered = true;
+                            break;
+                        }
+                    }
+                }
+                if (alreadyAnswered) {
+                    canAnswer = false;
+                }
+
+                var answersHtml = '';
+                if (hasAnswers) {
+                    for (var a = 0; a < q.answers.length; a++) {
+                        var ans = q.answers[a];
+                        var helper = null;
+                        for (var h = 0; h < DB.users.length; h++) {
+                            if (DB.users[h].id === ans.helperId) {
+                                helper = DB.users[h];
+                                break;
+                            }
+                        }
+                        var helperName = isTeacher ? (helper ? helper.name : 'Unknown') : 'Anonymous Helper';
+                        var ansImg = ans.image ? '<img src="' + ans.image + '" class="img-preview mt-2">' : '';
+                        
+                        var ratingStatus = '';
+                        if (ans.rated) {
+                            ratingStatus = ans.helpful 
+                                ? '<span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded ml-2"><i class="fas fa-check"></i> Helpful</span>'
+                                : '<span class="bg-red-100 text-red-800 text-xs px-2 py-1 rounded ml-2"><i class="fas fa-times"></i> Not Helpful</span>';
+                        } else if (DB.currentUser.id === q.askerId && !q.solved) {
+                            ratingStatus = '<span class="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded ml-2"><i class="fas fa-clock"></i> Rate This Answer</span>';
+                        }
+                        
+                        var isMyAnswer = DB.currentUser.id === ans.helperId;
+                        
+                        answersHtml += '<div class="mt-4 bg-green-50 p-4 rounded-lg border border-green-200">' +
+                            '<div class="flex items-center gap-2 mb-2 flex-wrap">' +
+                            '<span class="bg-green-600 text-white text-xs px-2 py-1 rounded"><i class="fas fa-check"></i> Answer</span>' +
+                            '<span class="text-xs text-gray-600 font-semibold">by ' + helperName + '</span>' +
+                            ratingStatus +
+                            (isTeacher ? '<span class="text-xs text-gray-400">(' + (ans.rated && ans.helpful ? '+20' : '0') + ' pts)</span>' : '') +
+                            (isMyAnswer ? '<span class="text-xs bg-indigo-100 text-indigo-800 px-2 py-1 rounded">Your Answer</span>' : '') +
+                            '</div>' +
+                            '<p class="text-gray-800">' + ans.text + '</p>' +
+                            ansImg +
+                            '</div>';
+                    }
+                }
+                
+                var answerButton = '';
+                if (canAnswer) {
+                    answerButton = '<div class="mt-4 text-center bg-indigo-50 p-3 rounded-lg">' +
+                        '<button onclick="openAnswerModal(' + q.id + ')" class="text-indigo-600 font-bold hover:underline">' +
+                        '<i class="fas fa-pen"></i> Answer This Question</button>' +
+                        '</div>';
+                } else if (!isTeacher && !q.solved) {
+                    if (alreadyAnswered) {
+                        answerButton = '<div class="mt-4 text-center text-gray-400 text-sm"><i class="fas fa-check-circle"></i> You already answered</div>';
+                    } else {
+                        answerButton = '<div class="mt-4 text-center text-gray-400 text-sm"><i class="fas fa-lock"></i> Waiting for asker to rate...</div>';
+                    }
+                } else if (q.solved) {
+                    answerButton = '<div class="mt-4 text-center text-gray-400 text-sm"><i class="fas fa-lock"></i> Question Closed (Solved)</div>';
+                }
+
+                var askerName = isTeacher ? (asker ? asker.name : 'Unknown') : 'Classmate';
+                var qImg = q.image ? '<img src="' + q.image + '" class="img-preview mt-2">' : '';
+                var statusBadge = q.solved 
+                    ? '<span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">Solved</span>' 
+                    : '<span class="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded">Open</span>';
+                
+                var answerCount = q.answers ? q.answers.length : 0;
+
+                container.innerHTML += '<div class="bg-white border rounded-lg shadow-sm overflow-hidden">' +
+                    '<div class="p-4 border-b bg-gray-50 flex justify-between items-start">' +
+                    '<div>' +
+                    '<div class="flex items-center gap-2 mb-1">' +
+                    '<span class="font-bold text-indigo-700">' + q.subject + '</span>' +
+                    statusBadge +
+                    '<span class="text-xs text-gray-500 bg-gray-200 px-2 py-1 rounded">' + answerCount + ' answer(s)</span>' +
+                    '</div>' +
+                    '<span class="text-xs text-gray-500">Asked by ' + askerName + ' - ' + new Date(q.id).toLocaleTimeString() + '</span>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="p-4">' +
+                    '<p class="text-gray-800 mb-2">' + q.text + '</p>' +
+                    qImg +
+                    answersHtml +
+                    answerButton +
+                    '</div>' +
+                    '</div>';
+            }
+        }
+
+        // --- IMAGE PREVIEWS ---
+        document.getElementById('q-image').addEventListener('change', function() {
+            handlePreview(this, 'q-image-preview');
+        });
+        document.getElementById('ans-image').addEventListener('change', function() {
+            handlePreview(this, 'ans-image-preview');
+        });
+
+        function handlePreview(input, previewId) {
+            var file = input.files[0];
+            if (file) {
+                if (file.size > MAX_IMAGE_SIZE) {
+                    alert('Image too large! Max 200KB');
+                    input.value = '';
+                    document.getElementById(previewId).classList.add('hidden-section');
+                    return;
+                }
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    var img = document.getElementById(previewId);
+                    img.src = e.target.result;
+                    img.classList.remove('hidden-section');
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // --- POST QUESTION ---
+        function postQuestion() {
+            var subject = document.getElementById('q-subject').value.trim();
+            var text = document.getElementById('q-text').value.trim();
+            var imgInput = document.getElementById('q-image');
+
+            if (!subject || !text) {
+                alert('Fill subject and text');
+                return;
+            }
+
+            var saveQuestion = function(imgData) {
+                var cls = null;
+                for (var i = 0; i < DB.classes.length; i++) {
+                    if (DB.classes[i].id === currentClassId) {
+                        cls = DB.classes[i];
+                        break;
+                    }
+                }
+                cls.questions.push({
+                    id: Date.now(),
+                    askerId: DB.currentUser.id,
+                    subject: subject, 
+                    text: text,
+                    image: imgData,
+                    answers: [],
+                    solved: false
+                });
+                saveDB();
+                toggleModal('ask-question-modal');
+                document.getElementById('q-subject').value = '';
+                document.getElementById('q-text').value = '';
+                document.getElementById('q-image').value = '';
+                document.getElementById('q-image-preview').classList.add('hidden-section');
+                renderQuestions(cls);
+            };
+
+            if (imgInput.files && imgInput.files[0]) {
+                fileToBase64(imgInput.files[0], saveQuestion);
+            } else {
+                saveQuestion(null);
+            }
+        }
+
+        // --- POST ANSWER ---
+        function openAnswerModal(qId) {
+            document.getElementById('ans-question-id').value = qId;
+            toggleModal('answer-question-modal');
+        }
+
+        function postAnswer() {
+            var qId = parseInt(document.getElementById('ans-question-id').value);
+            var text = document.getElementById('ans-text').value.trim();
+            var imgInput = document.getElementById('ans-image');
+
+            if (!text) {
+                alert('Write an answer');
+                return;
+            }
+
+            var cls = null;
+            for (var i = 0; i < DB.classes.length; i++) {
+                if (DB.classes[i].id === currentClassId) {
+                    cls = DB.classes[i];
+                    break;
+                }
+            }
+            var qIndex = -1;
+            for (var j = 0; j < cls.questions.length; j++) {
+                if (cls.questions[j].id === qId) {
+                    qIndex = j;
+                    break;
+                }
+            }
+            
+            if (qIndex === -1 || cls.questions[qIndex].solved) {
+                alert('This question is already solved!');
+                toggleModal('answer-question-modal');
+                return;
+            }
+
+            var finalizeAnswer = function(imgData) {
+                var answerIndex = cls.questions[qIndex].answers.length;
+                
+                cls.questions[qIndex].answers.push({
+                    helperId: DB.currentUser.id,
+                    text: text,
+                    image: imgData,
+                    rated: false,
+                    helpful: false
+                });
+                
+                // Create notification for asker
+                var askerId = cls.questions[qIndex].askerId;
+                for (var k = 0; k < DB.users.length; k++) {
+                    if (DB.users[k].id === askerId) {
+                        if (!DB.users[k].notifications) {
+                            DB.users[k].notifications = [];
+                        }
+                        DB.users[k].notifications.push({
+                            type: 'answer_received',
+                            classId: cls.id,
+                            questionId: qId,
+                            answerIndex: answerIndex,
+                            helperId: DB.currentUser.id,
+                            message: 'Your question "' + cls.questions[qIndex].subject + '" has a new answer!',
+                            timestamp: Date.now(),
+                            read: false,
+                            rated: false,
+                            helpful: false
+                        });
+                        break;
+                    }
+                }
+                
+                saveDB();
+                toggleModal('answer-question-modal');
+                document.getElementById('ans-text').value = '';
+                document.getElementById('ans-image').value = '';
+                document.getElementById('ans-image-preview').classList.add('hidden-section');
+                
+                renderQuestions(cls);
+                
+                alert('Answer submitted! The asker will review it. You will get points if they mark it as helpful.');
+            };
+
+            if (imgInput.files && imgInput.files[0]) {
+                fileToBase64(imgInput.files[0], finalizeAnswer);
+            } else {
+                finalizeAnswer(null);
+            }
+        }
+
+        function renderLeaderboard(cls) {
+            var container = document.getElementById('class-leaderboard');
+            var students = [];
+            for (var i = 0; i < DB.users.length; i++) {
+                if (cls.students.indexOf(DB.users[i].id) !== -1) {
+                    students.push(DB.users[i]);
+                }
+            }
+            students.sort(function(a, b) { return b.points - a.points; });
+            
+            var html = '';
+            for (var i = 0; i < Math.min(students.length, 5); i++) {
+                var s = students[i];
+                var medal = i === 0 ? '🥇' : (i === 1 ? '🥈' : (i === 2 ? '🥉' : (i + 1)));
+                html += '<div class="flex justify-between items-center border-b pb-2 last:border-0">' +
+                    '<div class="flex items-center gap-2">' +
+                    '<span class="font-bold text-gray-400 w-6">' + medal + '</span>' +
+                    '<span class="text-sm font-semibold ' + (i === 0 ? 'text-indigo-700' : '') + '">' + s.name + '</span>' +
+                    '</div>' +
+                    '<span class="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded">' + s.points + ' pts</span>' +
+                    '</div>';
+            }
+            container.innerHTML = html || '<p class="text-sm text-gray-400 text-center">No activity yet</p>';
+        }
+    </script>
+</body>
+</html>
